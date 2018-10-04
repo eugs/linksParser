@@ -2,49 +2,51 @@ const parse = require('node-html-parser').parse;
 const fs = require('fs');
 let request = require("request-promise");
 
-let mainLink = 'http://www.cmsmagazine.ru/creators';
-const file = './links.txt';
-let finalLinksArray = [];
+const mainLink = 'http://www.cmsmagazine.ru/creators';
+const filePages = './output/studios.txt';
+const fileLinks = './output/links.txt';
 
+let studiosArray = [];
+let finalLinksArray = [];
+let promises = [];
 
 grabHTML(mainLink)
   .then((html) => {
-    console.log('page downloaded');
-    const root = parse(html);
-    let links = root.querySelectorAll('td.name a');
-    console.log(`will open ${links.length} links`);
+    console.log('got main page');
+    let links = parse(html).querySelectorAll('td.name a');
+    console.log(`will check ${links.length} links`);
 
-    for(let i = 0; i < links.length; ++i) {
-      extractStudioLink(links[i].attributes.href)
-        .then((link) => {
-          // finalLinksArray.push(link);
-          fs.appendFileSync(file, link + '\n');
+    // go through every studio page
+    links.forEach((link) => {
+      let studioPage = link.attributes.href;
+      promises.push(grabHTML(studioPage));
+      studiosArray.push(studioPage);
+    })
+
+    // open every page and extract studio link
+    Promise.all(promises)
+      .then((htmls) => {
+        console.log(`\ntotal pages grabbed: ${htmls.length}`);
+        // extract links
+        htmls.forEach((page) => {
+          let finalLink = parse(page).querySelector('.mainInset a');
+
+          if(finalLink) {
+            finalLinksArray.push(finalLink.attributes.href);
+          } else {
+            finalLinksArray.push('');
+          }
+
         })
-    }
 
-  // links.forEach((link) => {
-  //
-  // })
+        console.log(`parsed: ${finalLinksArray.join('\n')}`);
+
+        // store on disk
+        fs.writeFileSync(filePages, JSON.stringify(studiosArray, null, 4));
+        fs.writeFileSync(fileLinks, JSON.stringify(finalLinksArray, null, 4));
+    })
+
 });
-
-function extractStudioLink(link) {
-  console.log('attempt to open link:', link);
-  return grabHTML(link)
-    .then((html) => {
-      console.log(`got html from link: ${link}`);
-      // const root = parse(html);
-      let finalLink = parse(html).querySelector('.mainInset a');
-
-      if(finalLink) {
-        return finalLink.attributes.href
-      } else {
-        console.log(`can't get href attribute from: ${link}`)
-        return '';
-      }
-
-    // require('fs').writeFileSync('./page.html', root.toString());
-  })
-}
 
 
 function grabHTML(link) {
@@ -58,16 +60,3 @@ function grabHTML(link) {
       }
   )
 }
-
-
-
-
-// request(
-//     { uri: 'http://www.cmsmagazine.ru/creators' },
-//     function(error, response, body) {
-//       if(error) {
-//         console.log(`ERROR: ${error}`);
-//       }
-//         return body;
-//     }
-// )
