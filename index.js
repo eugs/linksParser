@@ -10,10 +10,12 @@ let pages = [];
 let finalLinks = [];
 
 let pageLinks = grabPages();
-grabLinks(pageLinks);
+// grabLinks(pageLinks);
 
 
 async function grabPages() {
+  console.log('grabPages called');
+
   let studioLinks = [];
 
   for(let i = 0; i < 3; i++) {
@@ -31,34 +33,61 @@ async function grabPages() {
     console.log(`will check ${studioLinks[index].length} links`);
   });
 
-  return studioLinks;
-}
 
+  // open every link
+  for(let i = 0; i < studioLinks.length; i++) {
+    let page = studioLinks[i];
+    finalLinks[i] = [];
+    console.log('grab page:', i);
 
-async function grabLinks(pageLinks) {
-  console.log('grab links called');
-  
-    // open every link
-    for(let i = 0; i < pageLinks.length; i++) {
-      let page = pageLinks[i];
-      finalLinks[i] = [];
-      console.log('grab page:', pageIndex);
+    for(let j = 0; j < studioLinks[i].length; j++) {
+      let htmlObject = page[j];
+        // get link on studio page
+      let link = htmlObject.attributes.href;
+      let studioHTML = await grabHTML(link);
+      let finalLink = parse(studioHTML).querySelector('.mainInset a');
 
-      for(let j = 0; j < pageLinks.length; j++) {
-        let htmlObject = page[j];
-          // get link on studio page
-        let link = htmlObject.attributes.href;
-        let studioHTML = await grabHTML(link);
-        let finalLink = parse(studioHTML).querySelector('.mainInset a');
-        finalLinks[i][j].push(finalLink);
-        console.log('grabbed link', finalLink);
+      if(finalLink) {
+        finalLinks[i].push(finalLink.attributes.href);
+      } else {
+        finalLinks[i].push('');
       }
-      console.log('page grabbed', finalLinks[i].length);
-    }
 
-    console.log('done, write will be there');
+      console.log('grabbed link', finalLinks[i][j]);
+    }
+    console.log('page grabbed', finalLinks[i].length);
+  }
+
+  console.log('done, write will be there');
+
 
 }
+
+
+// async function grabLinks(pageLinks) {
+//   console.log('grab links called');
+//
+//     // open every link
+//     for(let i = 0; i < pageLinks.length; i++) {
+//       let page = pageLinks[i];
+//       finalLinks[i] = [];
+//       console.log('grab page:', pageIndex);
+//
+//       for(let j = 0; j < pageLinks.length; j++) {
+//         let htmlObject = page[j];
+//           // get link on studio page
+//         let link = htmlObject.attributes.href;
+//         let studioHTML = await grabHTML(link);
+//         let finalLink = parse(studioHTML).querySelector('.mainInset a');
+//         finalLinks[i][j].push(finalLink);
+//         console.log('grabbed link', finalLink);
+//       }
+//       console.log('page grabbed', finalLinks[i].length);
+//     }
+//
+//     console.log('done, write will be there');
+//
+// }
 
 
 function grabHTML(link) {
