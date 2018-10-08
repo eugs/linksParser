@@ -6,93 +6,59 @@ const mainLink = 'http://www.cmsmagazine.ru/creators/?pn=';
 const filePages = './output/studios.txt';
 const fileLinks = './output/links.txt';
 
-let studiosArray = [];
-let finalLinksArray = [];
-let promises = [];
+let pages = [];
+let finalLinks = [];
 
-let pagesSets = [];
+let pageLinks = grabPages();
+grabLinks(pageLinks);
 
-  for(let i = 0; i < 2; i++) {
-    promises.push(grabHTML(mainLink+i));
+
+async function grabPages() {
+  let studioLinks = [];
+
+  for(let i = 0; i < 3; i++) {
+    let page = await grabHTML(mainLink + i);
+    pages.push(page);
+    console.log('grabbed', i);
   }
 
-  Promise.all(promises)
+  console.log(`got main pages: ${pages.length}\n`);
 
-    .then((pages) => {
-      console.log(`got main pages: ${pages.length}`);
-      let pageLinks = [];
+    // parse links of every page
+  pages.forEach((page, index) => {
+    console.log('foreach PAGE', index);
+    studioLinks[index] = parse(page).querySelectorAll('td.name a');
+    console.log(`will check ${studioLinks[index].length} links`);
+  });
 
-        // parse links of every page
-      pages.forEach((page, index) => {
-        console.log('foreach PAGE', index);
+  return studioLinks;
+}
 
-        pageLinks[index] = parse(page).querySelectorAll('td.name a');
-        console.log(`will check ${pageLinks[index].length} links`);
-      });
 
-      return pageLinks;
-    })
+async function grabLinks(pageLinks) {
+  console.log('grab links called');
+  
+    // open every link
+    for(let i = 0; i < pageLinks.length; i++) {
+      let page = pageLinks[i];
+      finalLinks[i] = [];
+      console.log('grab page:', pageIndex);
 
-    .then((allPagesLinks) => {
-      let actions = [];
+      for(let j = 0; j < pageLinks.length; j++) {
+        let htmlObject = page[j];
+          // get link on studio page
+        let link = htmlObject.attributes.href;
+        let studioHTML = await grabHTML(link);
+        let finalLink = parse(studioHTML).querySelector('.mainInset a');
+        finalLinks[i][j].push(finalLink);
+        console.log('grabbed link', finalLink);
+      }
+      console.log('page grabbed', finalLinks[i].length);
+    }
 
-      // push every link into array of promises
-      allPagesLinks.forEach((pageLinks) => {
-        actions = pageLinks.map((htmlObject) => {
-          // console.log('try to grab', htmlObject.attributes.href)
-          let link = htmlObject.attributes.href;
-          actions.push(grabHTML(link));
-        })
-      })
+    console.log('done, write will be there');
 
-      console.log('actions collected:', actions.length);
-
-      return Promise.all(actions);
-    })
-    .then((finalArray) => {
-      console.log('finalArray', finalArray.length);
-      // store on disk
-
-    })
-
-// grabHTML(mainLink)
-//   .then((html) => {
-//
-//     // go through every studio page
-//     links.forEach((link) => {
-//       let studioPage = link.attributes.href;
-//       promises.push(grabHTML(studioPage));
-//       studiosArray.push(studioPage);
-//     })
-//
-//     // open every page and extract studio link
-//     Promise.all(promises)
-//       .then((htmls) => {
-//         console.log(`\ntotal pages grabbed: ${htmls.length}`);
-//
-//         // extract links
-//         htmls.forEach((page) => {
-//           let finalLink = parse(page).querySelector('.mainInset a');
-//
-//           if(finalLink) {
-//             finalLinksArray.push(finalLink.attributes.href);
-//           } else {
-//             finalLinksArray.push('');
-//           }
-//
-//         })
-//
-//         console.log(`parsed: ${finalLinksArray.join('\n')}`);
-//
-//         // store on disk
-//         fs.writeFileSync(filePages, JSON.stringify(studiosArray, null, 4));
-//         fs.writeFileSync(fileLinks, JSON.stringify(finalLinksArray, null, 4));
-//     })
-
-  // })
-  .catch((err) => {
-    // console.log(`ERROR: ${err}`);
-  })
+}
 
 
 function grabHTML(link) {
@@ -106,3 +72,27 @@ function grabHTML(link) {
       }
   )
 }
+
+
+//
+//
+// async function grabLinks(pageLinks) {
+//     // open every link
+//   pageLinks.forEach((page, pageIndex) => {
+//     finalLinks[pageIndex] = [];
+//     console.log('grab page:', pageIndex);
+//
+//     page.forEach((htmlObject, linkIndex) => {
+//         // get link on studio page
+//       let link = htmlObject.attributes.href;
+//       let studioHTML = await grabHTML(link);
+//       let finalLink = parse(studioHTML).querySelector('.mainInset a');
+//       finalLinks[pageIndex].push(finalLink);
+//       console.log('grabbed link', finalLink);
+//     })
+//
+//     console.log('page grabbed', finalLinks[pageIndex].length);
+//
+//   });
+//
+// }
