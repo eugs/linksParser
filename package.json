@@ -9,7 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "node-html-parser": "^1.1.10"
+    "node-html-parser": "^1.1.10",
+    "request": "^2.88.0"
   },
   "devDependencies": {
     "request-promise": "^4.2.2"

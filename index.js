@@ -7,10 +7,14 @@ const mainLink = 'http://www.cmsmagazine.ru/creators/?pn=';
 const outputDir = './output'
 const filePages = `/studios.txt`;
 const fileLinks = '/links.txt';
+const fileErrors = '/errors.txt';
+
+const numPages = 67;
 
 let pages = [];
 let finalLinks = []; // final array of extracted links
 let pagesLinks = []; // final array of pages links
+const errors = [];
 
 grabPages();
 
@@ -20,7 +24,7 @@ async function grabPages() {
   let studioLinks = [];
 
     // go through all pages and grab html
-  for(let i = 0; i < 1; i++) {
+  for(let i = 0; i < numPages; i++) {
     let page = await grabHTML(mainLink + (i + 1));
     pages.push(page);
     console.log('grabbed:', mainLink + (i + 1));
@@ -55,6 +59,7 @@ async function grabPages() {
         finalLink = parse(studioHTML).querySelector('.mainInset a');
       } catch(e) {
         console.log('error while parsing link: ', link);
+        errors.push(link);
       }
 
       finalLink = (finalLink) ? finalLink.attributes.href : ''
@@ -70,45 +75,24 @@ async function grabPages() {
   console.log('\nfinished');
   console.log('links:', finalLinks.length);
   console.log('pages:', pagesLinks.length);
+  console.log('errors:', errors.length);
 
 
+  // store on disk
   if (!fs.existsSync(outputDir)){
     fs.mkdirSync(outputDir);
   }
 
-  // store on disk
   fs.writeFileSync(`${outputDir}${filePages}`, JSON.stringify(pagesLinks, null, 4).replace(/[\"\,]/g, ''));
   fs.writeFileSync(`${outputDir}${fileLinks}`, JSON.stringify(finalLinks, null, 4).replace(/[\"\,]/g, ''));
+  if(errors.length) {
+    fs.writeFileSync(`${outputDir}${fileErrors}`, JSON.stringify(errors, null, 4).replace(/[\"\,]/g, ''));
+  }
+
   console.log('Saved!');
   console.log(`Check out \n${outputDir}\n\t${filePages}\n\t${fileLinks}`);
 
 }
-
-
-// async function grabLinks(pageLinks) {
-//   console.log('grab links called');
-//
-//     // open every link
-//     for(let i = 0; i < pageLinks.length; i++) {
-//       let page = pageLinks[i];
-//       finalLinks[i] = [];
-//       console.log('grab page:', pageIndex);
-//
-//       for(let j = 0; j < pageLinks.length; j++) {
-//         let htmlObject = page[j];
-//           // get link on studio page
-//         let link = htmlObject.attributes.href;
-//         let studioHTML = await grabHTML(link);
-//         let finalLink = parse(studioHTML).querySelector('.mainInset a');
-//         finalLinks[i][j].push(finalLink);
-//         console.log('grabbed link', finalLink);
-//       }
-//       console.log('page grabbed', finalLinks[i].length);
-//     }
-//
-//     console.log('done, write will be there');
-//
-// }
 
 function sleep(ms) {
   return new Promise((res) => {
@@ -127,27 +111,3 @@ function grabHTML(link) {
       }
   )
 }
-
-
-//
-//
-// async function grabLinks(pageLinks) {
-//     // open every link
-//   pageLinks.forEach((page, pageIndex) => {
-//     finalLinks[pageIndex] = [];
-//     console.log('grab page:', pageIndex);
-//
-//     page.forEach((htmlObject, linkIndex) => {
-//         // get link on studio page
-//       let link = htmlObject.attributes.href;
-//       let studioHTML = await grabHTML(link);
-//       let finalLink = parse(studioHTML).querySelector('.mainInset a');
-//       finalLinks[pageIndex].push(finalLink);
-//       console.log('grabbed link', finalLink);
-//     })
-//
-//     console.log('page grabbed', finalLinks[pageIndex].length);
-//
-//   });
-//
-// }
