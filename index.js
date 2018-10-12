@@ -3,63 +3,84 @@ const fs = require('fs');
 let request = require("request-promise");
 
 const mainLink = 'http://www.cmsmagazine.ru/creators/?pn=';
-const filePages = './output/studios.txt';
-const fileLinks = './output/links.txt';
+
+const outputDir = './output'
+const filePages = `/studios.txt`;
+const fileLinks = '/links.txt';
 
 let pages = [];
-let finalLinks = [];
+let finalLinks = []; // final array of extracted links
+let pagesLinks = []; // final array of pages links
 
-let pageLinks = grabPages();
-// grabLinks(pageLinks);
-
+grabPages();
 
 async function grabPages() {
-  console.log('grabPages called');
+  console.log('started...');
 
   let studioLinks = [];
 
-  for(let i = 0; i < 3; i++) {
-    let page = await grabHTML(mainLink + i);
+    // go through all pages and grab html
+  for(let i = 0; i < 1; i++) {
+    let page = await grabHTML(mainLink + (i + 1));
     pages.push(page);
-    console.log('grabbed', i);
+    console.log('grabbed:', mainLink + (i + 1));
   }
 
   console.log(`got main pages: ${pages.length}\n`);
 
     // parse links of every page
   pages.forEach((page, index) => {
-    console.log('foreach PAGE', index);
     studioLinks[index] = parse(page).querySelectorAll('td.name a');
-    console.log(`will check ${studioLinks[index].length} links`);
+    console.log(`page: ${index} - ${studioLinks[index].length} links`);
   });
 
+  console.log('\nextracting links started...');
 
   // open every link
   for(let i = 0; i < studioLinks.length; i++) {
     let page = studioLinks[i];
-    finalLinks[i] = [];
     console.log('grab page:', i);
 
     for(let j = 0; j < studioLinks[i].length; j++) {
       let htmlObject = page[j];
+      let finalLink;
+      let studioHTML;
+
         // get link on studio page
       let link = htmlObject.attributes.href;
-      let studioHTML = await grabHTML(link);
-      let finalLink = parse(studioHTML).querySelector('.mainInset a');
+      pagesLinks.push(link);
 
-      if(finalLink) {
-        finalLinks[i].push(finalLink.attributes.href);
-      } else {
-        finalLinks[i].push('');
+      try {
+        studioHTML = await grabHTML(link);
+        finalLink = parse(studioHTML).querySelector('.mainInset a');
+      } catch(e) {
+        console.log('error while parsing link: ', link);
       }
 
-      console.log('grabbed link', finalLinks[i][j]);
+      finalLink = (finalLink) ? finalLink.attributes.href : ''
+      finalLinks.push(finalLink);
+
+      // console.log(finalLink);
+      await sleep(10);
     }
-    console.log('page grabbed', finalLinks[i].length);
+    console.log('done:', i);
+    await sleep(500);
   }
 
-  console.log('done, write will be there');
+  console.log('\nfinished');
+  console.log('links:', finalLinks.length);
+  console.log('pages:', pagesLinks.length);
 
+
+  if (!fs.existsSync(outputDir)){
+    fs.mkdirSync(outputDir);
+  }
+
+  // store on disk
+  fs.writeFileSync(`${outputDir}${filePages}`, JSON.stringify(pagesLinks, null, 4).replace(/[\"\,]/g, ''));
+  fs.writeFileSync(`${outputDir}${fileLinks}`, JSON.stringify(finalLinks, null, 4).replace(/[\"\,]/g, ''));
+  console.log('Saved!');
+  console.log(`Check out \n${outputDir}\n\t${filePages}\n\t${fileLinks}`);
 
 }
 
@@ -89,6 +110,11 @@ async function grabPages() {
 //
 // }
 
+function sleep(ms) {
+  return new Promise((res) => {
+    setTimeout(res, ms);
+  })
+}
 
 function grabHTML(link) {
   return request(
